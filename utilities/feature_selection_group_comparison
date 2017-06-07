@@ -1,0 +1,4 @@
+clear all;
+close all;
+
+load('feature_selection_group1.mat');

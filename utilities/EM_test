@@ -1,0 +1,8 @@
+clear all
+close all
+
+%load data
+
+%run EM
+
+% compute for new input
