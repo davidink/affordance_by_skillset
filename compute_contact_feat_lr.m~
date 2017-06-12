@@ -1,0 +1,8 @@
+function [feats] = compute_contact_feat_lr(obj_point, obj_point_norm, target_obj_cloud, target_obj_cloud_norm)
+    den_est = 0;
+    sigma = 0.05;
+    for i=1:size(target_obj_cloud,1)
+        den_est = den_est + exp(-(obj_point-)^2/sigma^2);
+    end
+    
+end
