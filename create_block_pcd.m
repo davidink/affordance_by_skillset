@@ -15,8 +15,8 @@ function [modelpoints normpoints] = create_block_pcd(x_size,y_size,z_size,granua
             x_val = obj_cent(1,1) - x_size/2; 
             y_val = obj_cent(1,2) - y_size/2;
             z_val = z_size/2 + obj_cent(1,3);
-            surf_points((i-1)*(y_size/granual+1)+j,:)=[x_val+(i-1)*granual y_val+(j-1)*granual z_val];
-            norm_points((i-1)*(y_size/granual+1)+j,:)=[0 0 1];
+            surf_points(round((i-1)*(y_size/granual+1)+j),:)=[x_val+(i-1)*granual y_val+(j-1)*granual z_val];
+            norm_points(round((i-1)*(y_size/granual+1)+j),:)=[0 0 1];
         end
     end
     modelpoints = [modelpoints;surf_points];
@@ -26,8 +26,8 @@ function [modelpoints normpoints] = create_block_pcd(x_size,y_size,z_size,granua
             x_val = obj_cent(1,1) - x_size/2; 
             y_val = obj_cent(1,2) - y_size/2;
             z_val = -z_size/2 + obj_cent(1,3);
-            surf_points((i-1)*(y_size/granual+1)+j,:)=[x_val+(i-1)*granual y_val+(j-1)*granual z_val];
-            norm_points((i-1)*(y_size/granual+1)+j,:)=[0 0 -1];
+            surf_points(round((i-1)*(y_size/granual+1)+j),:)=[x_val+(i-1)*granual y_val+(j-1)*granual z_val];
+            norm_points(round((i-1)*(y_size/granual+1)+j),:)=[0 0 -1];
         end
     end
     modelpoints = [modelpoints;surf_points];
@@ -38,8 +38,8 @@ function [modelpoints normpoints] = create_block_pcd(x_size,y_size,z_size,granua
             x_val = obj_cent(1,1) - x_size/2; 
             y_val = obj_cent(1,2) - y_size/2;
             z_val = obj_cent(1,3) - z_size/2;
-            surf_points((i-1)*(z_size/granual+1)+j,:)=[x_val+(i-1)*granual y_val z_val+(j-1)*granual];
-            norm_points((i-1)*(z_size/granual+1)+j,:)=[0 -1 0];
+            surf_points(round((i-1)*(z_size/granual+1)+j),:)=[x_val+(i-1)*granual y_val z_val+(j-1)*granual];
+            norm_points(round((i-1)*(z_size/granual+1)+j),:)=[0 -1 0];
         end
     end
     modelpoints = [modelpoints;surf_points];
@@ -49,8 +49,8 @@ function [modelpoints normpoints] = create_block_pcd(x_size,y_size,z_size,granua
             x_val = obj_cent(1,1) - x_size/2; 
             y_val = obj_cent(1,2) + y_size/2;
             z_val = obj_cent(1,3) - z_size/2;
-            surf_points((i-1)*(z_size/granual+1)+j,:)=[x_val+(i-1)*granual y_val z_val+(j-1)*granual];
-            norm_points((i-1)*(z_size/granual+1)+j,:)=[0 1 0];
+            surf_points(round((i-1)*(z_size/granual+1)+j),:)=[x_val+(i-1)*granual y_val z_val+(j-1)*granual];
+            norm_points(round((i-1)*(z_size/granual+1)+j),:)=[0 1 0];
         end
     end
     modelpoints = [modelpoints;surf_points];
@@ -61,8 +61,8 @@ function [modelpoints normpoints] = create_block_pcd(x_size,y_size,z_size,granua
             x_val = obj_cent(1,1) - x_size/2; 
             y_val = obj_cent(1,2) - y_size/2;
             z_val = obj_cent(1,3) - z_size/2;
-            surf_points((i-1)*(z_size/granual+1)+j,:)=[x_val y_val+(i-1)*granual z_val+(j-1)*granual];
-            norm_points((i-1)*(z_size/granual+1)+j,:)=[-1 0 0];
+            surf_points(round((i-1)*(z_size/granual+1)+j),:)=[x_val y_val+(i-1)*granual z_val+(j-1)*granual];
+            norm_points(round((i-1)*(z_size/granual+1)+j),:)=[-1 0 0];
         end
     end
     modelpoints = [modelpoints;surf_points];
@@ -72,8 +72,8 @@ function [modelpoints normpoints] = create_block_pcd(x_size,y_size,z_size,granua
             x_val = obj_cent(1,1) + x_size/2; 
             y_val = obj_cent(1,2) - y_size/2;
             z_val = obj_cent(1,3) - z_size/2;
-            surf_points((i-1)*(z_size/granual+1)+j,:)=[x_val y_val+(i-1)*granual z_val+(j-1)*granual];
-            norm_points((i-1)*(z_size/granual+1)+j,:)=[1 0 0];
+            surf_points(round((i-1)*(z_size/granual+1)+j),:)=[x_val y_val+(i-1)*granual z_val+(j-1)*granual];
+            norm_points(round((i-1)*(z_size/granual+1)+j),:)=[1 0 0];
         end
     end
     modelpoints = [modelpoints;surf_points];
