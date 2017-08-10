@@ -1,4 +1,4 @@
-function result = load_trajectories(dataFolder, scene_num, opt_save_kernel_feat, opt_save_feat_n_result)
+function result = load_trajectories_duel_kernel(dataFolder, scene_num, opt_save_kernel_feat, opt_save_feat_n_result)
 
     addpath('utilities');
     % dataFolder = 'data/trajectories/';
@@ -52,7 +52,7 @@ function result = load_trajectories(dataFolder, scene_num, opt_save_kernel_feat,
     features = [];
     results = [];
 
-    for time_step = 10:step_size:size(trajectory,1)-step_size % visualize according to the pose
+    for time_step = 10:step_size:size(trajectory,1)% visualize according to the pose
         gripper_pose = [eGetR(Executed_EE_pose(time_step,4:6)) Executed_EE_pose(time_step,1:3)'; 0 0 0 1];
         if time_step == size(trajectory,1)
             nxt_gripper_pose = gripper_pose; % end of execution
@@ -127,25 +127,33 @@ function result = load_trajectories(dataFolder, scene_num, opt_save_kernel_feat,
 
                 if opt_save_kernel_feat
                 %save features for building up kernel
-                    save([dataFolder 'kernel' num2str(scene_num) '_' num2str(time_step) '.mat'],'global_shape_features','local_contact_shape_features','cur_action_pose');
+                    %save([dataFolder 'kernel' num2str(scene_num) '_' num2str(time_step) '.mat'],'global_shape_features','local_contact_shape_features','cur_action_pose');
+                    save([dataFolder 'feat_' num2str(scene_num) '_' num2str(time_step) '.mat'],'global_shape_features','local_contact_shape_features','relative_pose_features','action_pose_features');
                 end
                 
                 if opt_save_feat_n_result
-%                     kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
+                    kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
                     obj_pose = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
                     obj_pose_af = cont_frame*obj_pose;
 
-                    nxt_obj_pose = [eGetR(obj_trajectory{i}(time_step+step_size,4:6)) obj_trajectory{i}(time_step+step_size,1:3)'; 0 0 0 1];
-                    nxt_obj_pose_af = cont_frame*nxt_obj_pose;
-                    
+                    if time_step == size(trajectory,1)
+                        nxt_obj_pose = obj_pose; % end of execution
+                        dontsave = true;
+                    else
+                        nxt_obj_pose = [eGetR(obj_trajectory{i}(time_step+step_size,4:6)) obj_trajectory{i}(time_step+step_size,1:3)'; 0 0 0 1];
+                        nxt_obj_pose_af = cont_frame*nxt_obj_pose;
+                        dontsave = false;
+                    end
                     obj_diff = nxt_obj_pose_af * obj_pose_af^-1;
-                    %obj_diff_ang = vrrotmat2vec(obj_diff(1:3,1:3));
+                    obj_diff_ang = vrrotmat2vec(obj_diff(1:3,1:3));
 
-                    cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features];
-                    cur_result = [obj_diff(1:3,4)' RGete(obj_diff(1:3,1:3))'];
+                    cur_feat = kernel_feat;
+                    cur_result = [obj_diff(1:3,4)' obj_diff_ang];
 
-                    features = [features;cur_feat];
-                    results = [results;cur_result];                    
+                    if ~dontsave
+                        features = [features;cur_feat];
+                        results = [results;cur_result];
+                    end
                 end
             end        
         end
