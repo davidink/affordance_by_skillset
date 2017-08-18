@@ -49,7 +49,7 @@ function result = load_trajectories_for_reactive_model(dataFolder, scene_num, op
     features = [];
     results = [];
 
-    for time_step = 10:step_size:size(trajectory,1)% visualize according to the pose
+    for time_step = 10:step_size:size(trajectory,1)-step_size% visualize according to the pose
         gripper_pose = [eGetR(Executed_EE_pose(time_step,4:6)) Executed_EE_pose(time_step,1:3)'; 0 0 0 1];
         modelpoints=gripper_pose*[gripper_points'; ones(1,size(gripper_points,1))];
         normalpoints = [gripper_pose(1:3,1:3) [0 0 0]';0 0 0 1]*[gripper_norms'; ones(1,size(gripper_norms,1))];
@@ -113,11 +113,30 @@ function result = load_trajectories_for_reactive_model(dataFolder, scene_num, op
                 cont_local_frame(4,4) = 1;
                 cont_local_frame(1:3,4) = (mean([cont_pcd_EE;cont_pcd_obj]))';
                 cont_local_frame(1:3,1:3) = app_action_pose(1:3,1:3);
+                
+                % extract obj shape grid feature
+                % w.r.t obj_pose to action frame
+                cur_obj_pose_af = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
+                cur_obj_pose = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
+                cur_obj_pose_af(1:3,1:3) = app_action_pose(1:3,1:3);
 
-                global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
+                %global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
+                global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_af, 0.25, 0.05);
+                
+                
                 %local_contact_shape_features = compute_grid_feature(cont_pcd_EE, cont_pcd_obj,cont_local_frame, 0.25, 0.05);
-                %local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_local_frame);
-                local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_frame);
+                local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_local_frame);
+                %local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_frame);
+                
+                relative_pose_obj_to_obj = cur_obj_pose*cont_frame^-1;
+                relative_pose_features = [relative_pose_obj_to_obj(1:3,4)' RGete(relative_pose_obj_to_obj(1:3,1:3))'];
+                action_pose_features = [app_action_pose(1:3,4)' RGete(app_action_pose(1:3,1:3))'];
+                
+                %reaction as features too
+                nxt_obj_pose = [eGetR(obj_trajectory{i}(time_step+step_size,4:6)) obj_trajectory{i}(time_step+step_size,1:3)'; 0 0 0 1];
+                obj_pose_diff = nxt_obj_pose * cur_obj_pose^-1;
+                obj_pose_diff_af = obj_pose_diff * cont_frame^-1;
+                reactive_pose_features = [obj_pose_diff_af(1:3,4)' RGete(obj_pose_diff_af(1:3,1:3))'];
                 grid_features = [global_shape_features local_contact_shape_features];
 
                 if opt_save_kernel_feat
@@ -128,20 +147,22 @@ function result = load_trajectories_for_reactive_model(dataFolder, scene_num, op
                 %save([dataFolder 'kernel' num2str(scene_num) '_' num2str(time_step) '.mat'],'global_shape_features','local_contact_shape_features');
 
                 if opt_save_feat_n_result
-                    kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
+                    %kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
                     
                     if time_step == size(trajectory,1)
                         reactive_pose = gripper_pose;
                         dontsave = true;
                     else
                         reactive_pose = nxt_gripper_pose * exp_gripper_pose^-1;
-                        reacitve_pose_ori = vrrotmat2vec(reactive_pose(1:3,1:3));
+                        %reacitve_pose_ori = vrrotmat2vec(reactive_pose(1:3,1:3));
+                        reacitve_pose_ori = RGete(reactive_pose(1:3,1:3));
                         dontsave = false;
                     end            
-                    cur_feat = kernel_feat;
-                    cur_result = [reactive_pose(1:3,4)' reacitve_pose_ori];
+                    %cur_feat = kernel_feat;
+                    cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features reactive_pose_features];
+                    cur_result = [reactive_pose(1:3,4)' reacitve_pose_ori'];
                     if ~dontsave
-                        features = [features;kernel_feat];
+                        features = [features;cur_feat];
                         results = [results;cur_result];
                     end                
                 end
@@ -152,7 +173,7 @@ function result = load_trajectories_for_reactive_model(dataFolder, scene_num, op
     end
 
     if opt_save_feat_n_result
-        save([dataFolder 'feat_n_result' num2str(scene_num) '.mat'],'features','results');
+        save([dataFolder 'react_feat_n_result' num2str(scene_num) '.mat'],'features','results');
         disp('done!');
     end
 end

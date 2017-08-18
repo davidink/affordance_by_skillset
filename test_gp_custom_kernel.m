@@ -1,8 +1,11 @@
+close all;
+clear all;
 rng(0,'twister'); % For reproducibility
 n = 1000;
 x = linspace(-10,10,n)';
 y = 1 + x*5e-2 + sin(x)./x + 0.2*randn(n,1);
 
+kfcn = @(XN,XM,theta) (kernel_function(XN,XM,theta));
 %kfcn = @(XN,XM,theta) (exp(theta(2))^2)*exp(-(pdist2(XN,XM).^2)/(2*exp(theta(1))^2));
 
 theta0 = [1.5,0.2];

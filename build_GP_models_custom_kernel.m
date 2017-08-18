@@ -32,24 +32,58 @@ function build_GP_models_custom_kernel(dataFolder)
 
 %     features_all = features_all(1:10:end,:);
 %     results_all = results_all(1:10:end,:);
+
+    features_conti = features_all(:,150:end);
     
-    % GP with ARD exponential
     length_scale_init_val = 1;
     %sigma0 = std(rslt_train);
-    sigma0 = [0.1 0.1 0.1 0.01 0.01 0.01 0.1];
+    %sigma0 = [0.1 0.1 0.1 0.1 0.1 0.1];
+    sigma0 = std(results_all);
     sigmaF0 = sigma0;
-    dim = size(features_all,2);
-    sigmaM0 = length_scale_init_val*ones(dim,1);
-%     sigmaM0(end,1) = 0.1;
-
-    for i=1:7
+    dim = size(features_conti,2);
+    %sigmaM0 = length_scale_init_val*ones(dim,1);
+    sigmaM0 = 1.0;
+    for i=1:6
         disp(['Training on ' num2str(i) 'th model']);
-        gprMdl{i} = fitrgp(features_all, results_all(:,i), 'Basis', 'constant', 'FitMethod','exact',...
-            'PredictMethod','exact','KernelFunction','ardsquaredexponential',...
+        se_gprMdl{i} = fitrgp(features_conti, results_all(:,i), 'Basis', 'constant', 'FitMethod','exact',...
+            'PredictMethod','exact','KernelFunction','squaredexponential',...
             'KernelParameters',[sigmaM0;sigmaF0(1,i)],'Sigma',sigma0(1,i),'Standardize',1);
         %[pred(:,i) pred_sd(:,i)] = predict(gprMdl{i},feat_test);        
-        pred_train(:,i) = resubPredict(gprMdl{i});
+        %pred_train(:,i) = resubPredict(gprMdl{i});
+        theta0(i,:) = se_gprMdl{i}.KernelInformation.KernelParameters';
     end
+    
+    theta_disc = [1.0 1.0]';
+    theta_noise_var = 0.1;
+    for i=1:6
+        hyp = [theta_disc; theta0(i,:)'; theta_noise_var'];
+        hyp = log(hyp);
+        [result(:,i) result_sd(:,i)] = gp_pred_custom_kernel(hyp,features_all,results_all(:,i),features_all);
+    end
+
+    kfcn = @(XN,XM,theta) (kernel_function(XN,XM,theta));
+    for i=1:6
+        %theta0 = [1.0,0.1,1.0,0.1];
+        gprMdl{i} = fitrgp(features_all,results_all(:,i),'KernelFunction',kfcn,'KernelParameters',[theta0(i,:) theta0(i,:)],'FitMethod','none');
+    end
+    
+    % GP with ARD exponential
+%     length_scale_init_val = 1;
+%     %sigma0 = std(rslt_train);
+%     sigma0 = [0.1 0.1 0.1 0.01 0.01 0.01 0.1];
+%     sigmaF0 = sigma0;
+%     dim = size(features_all,2);
+%     sigmaM0 = length_scale_init_val*ones(dim,1);
+% %     sigmaM0(end,1) = 0.1;
+% 
+%     for i=1:7
+%         disp(['Training on ' num2str(i) 'th model']);
+%         gprMdl{i} = fitrgp(features_all, results_all(:,i), 'Basis', 'constant', 'FitMethod','exact',...
+%             'PredictMethod','exact','KernelFunction','ardsquaredexponential',...
+%             'KernelParameters',[sigmaM0;sigmaF0(1,i)],'Sigma',sigma0(1,i),'Standardize',1);
+%         %[pred(:,i) pred_sd(:,i)] = predict(gprMdl{i},feat_test);        
+%         pred_train(:,i) = resubPredict(gprMdl{i});
+%     end
 
     save([dataFolder 'GP_models.mat'],'gprMdl');
 end

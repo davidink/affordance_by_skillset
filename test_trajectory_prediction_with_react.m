@@ -39,10 +39,6 @@ function test_trajectory_prediction_with_react(dataFolder, scene_num)
     for i=1:num_obj
         granual = 0.005;
         obj_dim(i,:) = ceil(obj_param{i}(1,4:6)*100)/100;
-        %obj_dim(i,:) = floor(obj_param{i}(1,4:6)*100)/100;
-    %     x_size = ceil(obj_param{i}(1,4)*100)/100;
-    %     y_size = ceil(obj_param{i}(1,5)*100)/100;
-    %     z_size = ceil(obj_param{i}(1,6)*100)/100;
         obj_cent = [0.0 0.0 0];
         [obj_modelpoints{i} obj_normpoints{i}] = create_block_pcd(obj_dim(i,1),obj_dim(i,2),obj_dim(i,3),granual,obj_cent);
     end
@@ -51,14 +47,14 @@ function test_trajectory_prediction_with_react(dataFolder, scene_num)
     %step_size = 20;
     features = [];
     results = [];
-    load([dataFolder 'GP_models_react.mat']);
+    load([dataFolder 'GP_models_feature_ard_react.mat']);
     react_gprMdl = gprMdl;
-    load([dataFolder 'GP_models.mat']);
+    load([dataFolder 'GP_models_feature_ard.mat']);
 
     bool_madecontact = false;
     
     step_cnt = 1;
-    for time_step = 10:step_size:size(trajectory,1)% visualize according to the pose
+    for time_step = 10:step_size:size(trajectory,1)-step_size% visualize according to the pose
 
         if bool_madecontact==false
             exp_gripper_pose = [eGetR(Desired_EE_pose(time_step,4:6)) Desired_EE_pose(time_step,1:3)'; 0 0 0 1];
@@ -67,12 +63,9 @@ function test_trajectory_prediction_with_react(dataFolder, scene_num)
             exp_gripper_pose = [eGetR(Desired_EE_pose(time_step,4:6)) Desired_EE_pose(time_step,1:3)'; 0 0 0 1];
             exp_gripper_pose = pred_ee_pose_diff * exp_gripper_pose;
         end
-
-        if time_step == size(trajectory,1)
-            nxt_exp_gripper_pose = exp_gripper_pose; % end of execution
-        else
-            nxt_exp_gripper_pose = [eGetR(Desired_EE_pose(time_step+step_size,4:6)) Desired_EE_pose(time_step+step_size,1:3)'; 0 0 0 1];
-        end
+        
+        nxt_exp_gripper_pose = [eGetR(Desired_EE_pose(time_step+step_size,4:6)) Desired_EE_pose(time_step+step_size,1:3)'; 0 0 0 1];
+        
         cur_exp_action_pose = nxt_exp_gripper_pose * exp_gripper_pose^-1;
         modelpoints=exp_gripper_pose*[gripper_points'; ones(1,size(gripper_points,1))];
         normalpoints = [exp_gripper_pose(1:3,1:3) [0 0 0]';0 0 0 1]*[gripper_norms'; ones(1,size(gripper_norms,1))];
@@ -98,11 +91,9 @@ function test_trajectory_prediction_with_react(dataFolder, scene_num)
 
                 cur_obj_pose{i} = obj_pose_init{i};            
             end
-            if time_step == size(trajectory,1)
-                nxt_exp_gripper_pose = exp_gripper_pose; % end of execution
-            else
-                nxt_exp_gripper_pose = [eGetR(Desired_EE_pose(time_step+step_size,4:6)) Desired_EE_pose(time_step+step_size,1:3)'; 0 0 0 1];
-            end
+            
+            nxt_exp_gripper_pose = [eGetR(Desired_EE_pose(time_step+step_size,4:6)) Desired_EE_pose(time_step+step_size,1:3)'; 0 0 0 1];
+
             cur_exp_action_pose = nxt_exp_gripper_pose * exp_gripper_pose^-1;
             modelpoints=exp_gripper_pose*[gripper_points'; ones(1,size(gripper_points,1))];
             normalpoints = [exp_gripper_pose(1:3,1:3) [0 0 0]';0 0 0 1]*[gripper_norms'; ones(1,size(gripper_norms,1))];
@@ -147,62 +138,73 @@ function test_trajectory_prediction_with_react(dataFolder, scene_num)
                 cont_local_frame(1:3,4) = (mean([cont_pcd_EE;cont_pcd_obj]))';
                 cont_local_frame(1:3,1:3) = cur_exp_action_pose(1:3,1:3);
 
-                global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
-                local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_local_frame);
-                grid_features = [global_shape_features local_contact_shape_features];            
-                kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
-
-                for j=1:7
-                    [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},kernel_feat); 
-                end
-
+                cur_obj_pose_af{i} = cur_obj_pose{i} * cur_exp_action_pose^-1;
+                %global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
+                global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_af{i}, 0.25, 0.05);
                 %global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
-                local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_frame);
-                grid_features = [global_shape_features local_contact_shape_features];            
-                kernel_feat = compute_kernel_features([dataFolder 'feat_kernel_react.mat'],grid_features);
+                local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_local_frame);
+                relative_pose_obj_to_obj = cur_obj_pose{i}*cont_frame^-1;
+                relative_pose_features = [relative_pose_obj_to_obj(1:3,4)' RGete(relative_pose_obj_to_obj(1:3,1:3))'];
+                action_pose_features = [cur_exp_action_pose(1:3,4)' RGete(cur_exp_action_pose(1:3,1:3))'];
+                
+                %grid_features = [global_shape_features local_contact_shape_features];            
+                %kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
+                cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features];
 
-                for j=1:7
-                    [pred_react(1,j) pred_sd_react(1,j)] = predict(react_gprMdl{j},kernel_feat); 
+                for j=1:6
+                    [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},cur_feat); 
                 end
                 
                 % pose difference is predicted according to the action frame                
-                pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];           
+                
+                %pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];           
+                pred_obj_pose_diff = [eGetR(pred(1,4:6)) pred(1,1:3)'; 0 0 0 1];           
                 cur_obj_pose_af{i} = cont_frame*cur_obj_pose{i};
                 pred_obj_pose_af{i} = pred_obj_pose_diff * cur_obj_pose_af{i};
                 pred_obj_pose{i} = cont_frame^-1*pred_obj_pose_af{i};
+
+                %global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
+                local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_frame);
+                %grid_features = [global_shape_features local_contact_shape_features]; 
+                reactive_pose_features = [pred_obj_pose_af{i}(1:3,4)' RGete(pred_obj_pose_af{i}(1:3,1:3))'];
+                %kernel_feat = compute_kernel_features([dataFolder 'feat_kernel_react.mat'],grid_features);
+                cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features reactive_pose_features];
+
+                for j=1:6
+                    [pred_react(1,j) pred_sd_react(1,j)] = predict(react_gprMdl{j},cur_feat); 
+                end
                 
                 % pose difference of end-effector is w.r.t global frame
-                pred_ee_pose_diff = [vrrotvec2mat(pred_react(1,4:7)) pred_react(1,1:3)';0 0 0 1];
-                if time_step == size(trajectory,1)
-                    nxt_step_gripper_pose = [eGetR(Desired_EE_pose(time_step,4:6)) Desired_EE_pose(time_step,1:3)'; 0 0 0 1];
-                else
-                    nxt_step_gripper_pose = [eGetR(Desired_EE_pose(time_step+step_size,4:6)) Desired_EE_pose(time_step+step_size,1:3)'; 0 0 0 1];
-                end
+                %pred_ee_pose_diff = [vrrotvec2mat(pred_react(1,4:7)) pred_react(1,1:3)';0 0 0 1];
+                pred_ee_pose_diff = [eGetR(pred_react(1,4:6)) pred_react(1,1:3)';0 0 0 1];
+
+                nxt_step_gripper_pose = [eGetR(Desired_EE_pose(time_step+step_size,4:6)) Desired_EE_pose(time_step+step_size,1:3)'; 0 0 0 1];
+                
                 pred_ee_pose = pred_ee_pose_diff*nxt_step_gripper_pose;
                                 
-                for k=1:100
-                    for j=1:7
-                        if k==1
-                            pred_sample(k,j) = pred(1,j);
-                            pred_react_sample(k,j) = pred_react(1,j);
-                        else
-                            pred_sample(k,j) = normrnd(pred(1,j),pred_sd(1,j));                        
-                            pred_react_sample(k,j) = normrnd(pred_react(1,j),pred_sd_react(1,j));
-                        end
-                    end
-                end
-                
-                for k=1:100
-                    pred_obj_pose_diff_sample{k} = [vrrotvec2mat(pred_sample(k,4:7)) pred_sample(k,1:3)';0 0 0 1];
-                    pred_obj_pose_af{k} = pred_obj_pose_diff_sample{k} * cur_obj_pose_af{i};
-                    pred_obj_pose_sample{k} = cont_frame^-1*pred_obj_pose_af{k};
-                    pred_sample_gf(k,:) = [pred_obj_pose_sample{k}(1:3,4)' vrrotmat2vec(pred_obj_pose_sample{k}(1:3,1:3));];
-                    
-                    pred_ee_pose_diff_sample{k} = [vrrotvec2mat(pred_react_sample(k,4:7)) pred_react_sample(k,1:3)';0 0 0 1];
-                    pred_ee_pose_sample{k} = pred_ee_pose_diff_sample{k} * nxt_step_gripper_pose;
-                    pred_ee_pose_sample_gf(k,:) = [pred_ee_pose_sample{k}(1:3,4)' vrrotmat2vec(pred_ee_pose_sample{k}(1:3,1:3))];                                    
-                end
-                
+%                 for k=1:100
+%                     for j=1:6
+%                         if k==1
+%                             pred_sample(k,j) = pred(1,j);
+%                             pred_react_sample(k,j) = pred_react(1,j);
+%                         else
+%                             pred_sample(k,j) = normrnd(pred(1,j),pred_sd(1,j));                        
+%                             pred_react_sample(k,j) = normrnd(pred_react(1,j),pred_sd_react(1,j));
+%                         end
+%                     end
+%                 end
+%                 
+%                 for k=1:100
+%                     pred_obj_pose_diff_sample{k} = [vrrotvec2mat(pred_sample(k,4:7)) pred_sample(k,1:3)';0 0 0 1];
+%                     pred_obj_pose_af{k} = pred_obj_pose_diff_sample{k} * cur_obj_pose_af{i};
+%                     pred_obj_pose_sample{k} = cont_frame^-1*pred_obj_pose_af{k};
+%                     pred_sample_gf(k,:) = [pred_obj_pose_sample{k}(1:3,4)' vrrotmat2vec(pred_obj_pose_sample{k}(1:3,1:3));];
+%                     
+%                     pred_ee_pose_diff_sample{k} = [vrrotvec2mat(pred_react_sample(k,4:7)) pred_react_sample(k,1:3)';0 0 0 1];
+%                     pred_ee_pose_sample{k} = pred_ee_pose_diff_sample{k} * nxt_step_gripper_pose;
+%                     pred_ee_pose_sample_gf(k,:) = [pred_ee_pose_sample{k}(1:3,4)' vrrotmat2vec(pred_ee_pose_sample{k}(1:3,1:3))];                                    
+%                 end
+%                 
                 
 %                 figure;
 %                 hold on;

@@ -4,8 +4,8 @@ function test_trajectory_prediction(dataFolder,scene_num)
     % display ground truth trajectory
     step_size = 10;
     fig_gt = figure;
-    disp_trajectory(fig_gt,dataFolder,scene_num,step_size);
-    trajectory = load([dataFolder 'trajectory' num2str(scene_num) '.csv']);
+    disp_trajectory(fig_gt,[dataFolder 'test_trajectory' num2str(scene_num)],step_size);
+    trajectory = load([dataFolder 'test_trajectory' num2str(scene_num) '.csv']);
 
     % Data loading
     Desired_EE_pose_ref_base = trajectory(:,1:6); % relative to robot_base joint
@@ -50,7 +50,7 @@ function test_trajectory_prediction(dataFolder,scene_num)
 %     step_size = 20;
     features = [];
     results = [];
-    load([dataFolder 'GP_models.mat']);
+    load([dataFolder 'GP_models_kernel_ard.mat']);
     bool_madecontact = false;
 
     for time_step = 10:step_size:size(trajectory,1)% visualize according to the pose
@@ -119,15 +119,21 @@ function test_trajectory_prediction(dataFolder,scene_num)
                 cont_local_frame(4,4) = 1;
                 cont_local_frame(1:3,4) = (mean([cont_pcd_EE;cont_pcd_obj]))';
                 cont_local_frame(1:3,1:3) = cur_exp_action_pose(1:3,1:3);
+                
+                cur_obj_pose_af = cur_obj_pose{i};                
+                cur_obj_pose_af(1:3,1:3) = cur_exp_action_pose(1:3,1:3);
 
-                global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
+                global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_af, 0.25, 0.05);
+                relative_pose_obj_to_obj = cur_obj_pose{i}*cont_frame^-1;
+                relative_pose_features = [relative_pose_obj_to_obj(1:3,4)' RGete(relative_pose_obj_to_obj(1:3,1:3))'];
                 local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_local_frame);
                 grid_features = [global_shape_features local_contact_shape_features];
+                action_pose_features = [cur_exp_action_pose(1:3,4)' RGete(cur_exp_action_pose(1:3,1:3))'];
 
-                kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
-
-                for j=1:7
-                    [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},kernel_feat); 
+                %kernel_feat = compute_kernel_features([dataFolder 'feat_kernel.mat'],grid_features);
+                cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features];
+                for j=1:6
+                    [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},cur_feat); 
                 end
 
                 pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];            

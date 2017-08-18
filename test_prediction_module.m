@@ -1,8 +1,12 @@
 close all
 clear all
 %dataFolder = 'data/trajectories/push_1_object_4/';
-dataFolder = 'data/reactive/';
-num_test_scene = size(dir([dataFolder 'test*']),1);
-for i=6:num_test_scene
-    modular_prediction_push(dataFolder, i);
+testdataFolder = 'data/test/';
+
+num_test_scene = size(dir([testdataFolder 'test*']),1);
+for i=1:num_test_scene
+    test_trajectory = [testdataFolder 'test_trajectory' num2str(i)];
+    fwd_gp_model = load('data/models/GP_models_feature_ard.mat');
+    react_gp_model = load('data/models/GP_models_feature_ard_react.mat');
+    modular_prediction_push(test_trajectory, fwd_gp_model, react_gp_model);
 end

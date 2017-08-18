@@ -1,9 +1,9 @@
-function modular_prediction_push(dataFolder, scene_num)
+function modular_prediction_push(test_trajectory, fwd_gp_model, react_gp_model)
     addpath('utilities');
     step_size = 10;
     fig_gt = figure;
-    disp_trajectory(fig_gt,[dataFolder 'test_trajectory' num2str(scene_num)],step_size);
-    trajectory = load([dataFolder 'test_trajectory' num2str(scene_num) '.csv']);
+    disp_trajectory(fig_gt,test_trajectory,step_size);
+    trajectory = load([test_trajectory '.csv']);
 
     % Data loading
     Desired_EE_pose_ref_base = trajectory(:,1:6); % relative to robot_base joint
@@ -20,7 +20,7 @@ function modular_prediction_push(dataFolder, scene_num)
     ylabel('y');
     zlabel('z');
     axis equal;
-    axis([-0.25 0.25 -0.05 1.2 -0.2 0.2]);
+    axis([-0.25 0.25 -0.05 1.0 -0.2 0.2]);
     
     for i=1:num_obj
         obj_trajectory{i} = trajectory(:,14+(i-1)*6:14+(i-1)*6+5);
@@ -51,7 +51,7 @@ function modular_prediction_push(dataFolder, scene_num)
     for i=1:num_obj
         if bool_cont(i) && cont_time_step(i)==min(cont_time_step)
             %compute expected trajectory of obj1(end-effector) and %obj2(obj1)
-            [ee_traj obj_traj] = predict_trajectories(Desired_EE_pose, gripper_points, gripper_norms, obj_modelpoints{i}, obj_normpoints{i}, obj_trajectory{i}(1,:), dataFolder);
+            [ee_traj obj_traj] = predict_trajectories(Desired_EE_pose, gripper_points, gripper_norms, obj_modelpoints{i}, obj_normpoints{i}, obj_trajectory{i}(1,:), fwd_gp_model, react_gp_model);
             plot3(ee_traj(:,1),ee_traj(:,2),ee_traj(:,3),'.b');
             plot3(obj_traj(:,1),obj_traj(:,2),obj_traj(:,3),'xb');
             obj_trajectory{i} = obj_traj;
@@ -69,7 +69,7 @@ function modular_prediction_push(dataFolder, scene_num)
                 bool_cont_obj = test_contact_through_traj(obj_trajectory{i},obj_modelpoints{i},obj_normpoints{i},obj_modelpoints{j},obj_normpoints{j},obj_trajectory{j}(1,:));
                 if bool_cont_obj==1
                     %compute expected trajectory of obj1(end-effector) and %obj2(obj1)
-                    [obj1_traj obj2_traj] = predict_trajectories(obj_trajectory{i}, obj_modelpoints{i},obj_normpoints{i}, obj_modelpoints{j},obj_normpoints{j}, obj_trajectory{j}(1,:), dataFolder);
+                    [obj1_traj obj2_traj] = predict_trajectories(obj_trajectory{i}, obj_modelpoints{i},obj_normpoints{i}, obj_modelpoints{j},obj_normpoints{j}, obj_trajectory{j}(1,:), fwd_gp_model, react_gp_model);
                     %plot3(ee_traj(:,1),ee_traj(:,2),ee_traj(:,3),'.b');
                     plot3(obj1_traj(:,1),obj1_traj(:,2),obj1_traj(:,3),'xc');
                     plot3(obj2_traj(:,1),obj2_traj(:,2),obj2_traj(:,3),'xc');
