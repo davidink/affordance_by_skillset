@@ -132,5 +132,6 @@ function [obj1_trajectory obj2_trajectory] = predict_trajectories(Desired_obj1_p
     end
     obj1_trajectory = interpolate_traj(obj1_trajectory);
     obj2_trajectory = interpolate_traj(obj2_trajectory);
+
 end
 

@@ -76,11 +76,13 @@ function result = load_trajectories_mono(dataFolder, scene_num, opt_save_kernel_
     %compute features
     cur_obj1_pose = [eGetR(obj_trajectory{1}(1,4:6)) obj_trajectory{1}(1,1:3)'; 0 0 0 1];
     cur_obj1_pose_af = cur_obj1_pose * gripper_pose^-1;
+    cur_obj2_pose = [eGetR(obj_trajectory{2}(1,4:6)) obj_trajectory{2}(1,1:3)'; 0 0 0 1];
+    cur_obj2_pose_af = cur_obj2_pose * gripper_pose^-1;
     global_shape_features = compute_grid_feature(cur_gripper_points, all_obj_modelpoints, cur_obj1_pose_af, 0.25, 0.05);
     
     relative_pose1 = cur_obj1_pose*gripper_pose^-1;
     relative_pose1_features = [relative_pose1(1:3,4)' RGete(relative_pose1(1:3,1:3))'];
-    cur_obj2_pose = [eGetR(obj_trajectory{2}(1,4:6)) obj_trajectory{2}(1,1:3)'; 0 0 0 1];
+    %cur_obj2_pose = [eGetR(obj_trajectory{2}(1,4:6)) obj_trajectory{2}(1,1:3)'; 0 0 0 1];
     relative_pose2 = cur_obj2_pose*gripper_pose^-1;
     relative_pose2_features = [relative_pose2(1:3,4)' RGete(relative_pose2(1:3,1:3))'];
     
@@ -89,13 +91,13 @@ function result = load_trajectories_mono(dataFolder, scene_num, opt_save_kernel_
     features = [global_shape_features relative_pose1_features relative_pose2_features action_pose_features];
     
     obj1_end_pose = [eGetR(obj_trajectory{1}(end,4:6)) obj_trajectory{1}(end,1:3)'; 0 0 0 1];
-    obj1_end_pose_af = gripper_pose*obj1_end_pose;
-    obj1_diff = obj1_end_pose_af * cur_obj1_pose^-1;
+    obj1_end_pose_af = obj1_end_pose * gripper_pose^-1;    
+    obj1_diff = obj1_end_pose_af * cur_obj1_pose_af^-1;
     result1 = [obj1_diff(1:3,4)' RGete(obj1_diff(1:3,1:3))'];
     
     obj2_end_pose = [eGetR(obj_trajectory{2}(end,4:6)) obj_trajectory{2}(end,1:3)'; 0 0 0 1];
-    obj2_end_pose_af = gripper_pose*obj2_end_pose;
-    obj2_diff = obj2_end_pose_af * cur_obj2_pose^-1;
+    obj2_end_pose_af = obj2_end_pose * gripper_pose^-1;
+    obj2_diff = obj2_end_pose_af * cur_obj2_pose_af^-1;
     result2 = [obj2_diff(1:3,4)' RGete(obj2_diff(1:3,1:3))'];
     
     if opt_save_feat_n_result

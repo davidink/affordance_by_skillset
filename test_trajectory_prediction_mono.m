@@ -1,6 +1,6 @@
 function test_trajectory_prediction_mono(dataFolder,scene_num)
+    
     addpath('utilities');
-    %scene_num = 9;
     % display ground truth trajectory
     step_size = 10;
     fig_gt = figure;
@@ -26,7 +26,7 @@ function test_trajectory_prediction_mono(dataFolder,scene_num)
     ylabel('y');
     zlabel('z');
     axis equal;
-    axis([-0.25 0.25 -0.05 0.5 -0.2 0.2]);
+    axis([-0.25 0.25 -0.05 0.7 -0.2 0.2]);
 
     % show trajectory of end-effector 
 
@@ -50,112 +50,89 @@ function test_trajectory_prediction_mono(dataFolder,scene_num)
 %     step_size = 20;
     features = [];
     results = [];
-    load([dataFolder 'GP_models_feature_ard.mat']);
-    bool_madecontact = false;
-
-    for time_step = 10:step_size:size(trajectory,1)% visualize according to the pose
-
-        exp_gripper_pose = [eGetR(Desired_EE_pose(time_step,4:6)) Desired_EE_pose(time_step,1:3)'; 0 0 0 1];
-        if time_step == size(trajectory,1)
-            nxt_exp_gripper_pose = exp_gripper_pose; % end of execution
-        else
-            nxt_exp_gripper_pose = [eGetR(Desired_EE_pose(time_step+step_size,4:6)) Desired_EE_pose(time_step+step_size,1:3)'; 0 0 0 1];
-        end
-        cur_exp_action_pose = nxt_exp_gripper_pose * exp_gripper_pose^-1;
-        modelpoints=exp_gripper_pose*[gripper_points'; ones(1,size(gripper_points,1))];
-        normalpoints = [exp_gripper_pose(1:3,1:3) [0 0 0]';0 0 0 1]*[gripper_norms'; ones(1,size(gripper_norms,1))];
-        exp_gripper_points=modelpoints(1:3,:)';
-        exp_gripper_norms=normalpoints(1:3,:)';
-
-        figure(fig_exp);
-        plot3(exp_gripper_points(:,1),exp_gripper_points(:,2),exp_gripper_points(:,3),'Color',[1 0 0],'Marker','.','Linestyle','none');
-
+    
+    %compute features
+    gripper_pose = [eGetR(Desired_EE_pose(1,4:6)) Desired_EE_pose(1,1:3)'; 0 0 0 1];
+    end_gripper_pose = [eGetR(Desired_EE_pose(end,4:6)) Desired_EE_pose(end,1:3)'; 0 0 0 1];
+    modelpoints=gripper_pose*[gripper_points'; ones(1,size(gripper_points,1))];
+    normalpoints = [gripper_pose(1:3,1:3) [0 0 0]';0 0 0 1]*[gripper_norms'; ones(1,size(gripper_norms,1))];
+    cur_gripper_points=modelpoints(1:3,:)';
+    cur_gripper_norms=normalpoints(1:3,:)';
+    
+    action_pose = end_gripper_pose * gripper_pose^-1;
+    
         % create pcd of objects
-
-        if bool_madecontact == false
-            % load up initial pose of objects
-            for i=1:num_obj
-                %obj_pose_init{i} = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
-                obj_pose_init{i} = [eGetR(obj_trajectory{i}(1,4:6)) obj_trajectory{i}(1,1:3)'; 0 0 0 1];
-                obj_modelPoints=obj_pose_init{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
-                obj_normalPoints = [obj_pose_init{i}(1:3,1:3) [0 0 0]';0 0 0 1]*[obj_normpoints{i}'; ones(1,size(obj_normpoints{i},1))];
-                cur_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
-                cur_obj_normalpoints{i}=obj_normalPoints(1:3,:)';
-
-                figure(fig_exp);
-                plot3(cur_obj_modelpoints{i}(:,1),cur_obj_modelpoints{i}(:,2),cur_obj_modelpoints{i}(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
-
-                cur_obj_pose{i} = obj_pose_init{i};            
-            end
-        else
-            % if already made a contact, current obj_pose should be
-            % exp_obj_pose of previous step
-            for i=1:num_obj
-                cur_obj_pose{i} = pred_obj_pose{i};
-                obj_modelPoints=cur_obj_pose{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
-                obj_normalPoints = [cur_obj_pose{i}(1:3,1:3) [0 0 0]';0 0 0 1]*[obj_normpoints{i}'; ones(1,size(obj_normpoints{i},1))];
-                cur_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
-                cur_obj_normalpoints{i}=obj_normalPoints(1:3,:)';            
-            end
-        end
-
-        %compute contact points
-        % compute contact frame
-        dist_th = 0.02;
-        dot_th = -0.75;
-        num_th = 10;
-        for i=1:num_obj
-            cont_frame = zeros(4,4);
-            cont_frame(4,4) = 1;
-            ee_cent = mean(exp_gripper_points);
-            %obj_cent = mean(cur_obj_modelpoints{i});
-            %cont_frame(1:3,4) = mean([ee_cent;obj_cent])';
-            cont_frame(1:3,4) = ee_cent';
-            cont_frame(1:3,1:3) = cur_exp_action_pose(1:3,1:3);
-    %         plotCoord(cont_frame(1:3,4)',cont_frame(1:3,1:3),0.025);
-            [bool_cont cont_pcd_EE cont_norm_EE cont_pcd_obj cont_norm_obj] = compute_contact_points(exp_gripper_points, exp_gripper_norms, cur_obj_modelpoints{i}, cur_obj_normalpoints{i}, cont_frame, dist_th, dot_th, num_th);        
-            if bool_cont
-                cont_local_frame = zeros(4,4);
-                cont_local_frame(4,4) = 1;
-                cont_local_frame(1:3,4) = (mean([cont_pcd_EE;cont_pcd_obj]))';
-                cont_local_frame(1:3,1:3) = cur_exp_action_pose(1:3,1:3);
-                
-                cur_obj_pose_af = cur_obj_pose{i};                
-                cur_obj_pose_af(1:3,1:3) = cur_exp_action_pose(1:3,1:3);
-
-                global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_af, 0.25, 0.05);
-                relative_pose_obj_to_obj = cur_obj_pose{i}*cont_frame^-1;
-                relative_pose_features = [relative_pose_obj_to_obj(1:3,4)' RGete(relative_pose_obj_to_obj(1:3,1:3))'];
-                local_contact_shape_features = compute_surface_feature(cont_pcd_EE, cont_norm_EE, cont_pcd_obj, cont_norm_obj, cont_local_frame);
-                grid_features = [global_shape_features local_contact_shape_features];
-                action_pose_features = [cur_exp_action_pose(1:3,4)' RGete(cur_exp_action_pose(1:3,1:3))'];
-                all_features = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features];
-                
-                %kernel_feat = compute_kernel_features_kok([dataFolder 'feat_kernel.mat'],all_features);
-                cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features];
-                for j=1:6
-                    [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},cur_feat); 
-                end
-
-                %pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];            
-                pred_obj_pose_diff = [eGetR(pred(1,4:6)) pred(1,1:3)'; 0 0 0 1];            
-                pred_obj_pose{i} = pred_obj_pose_diff * cur_obj_pose{i};  
-                obj_modelPoints=pred_obj_pose{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
-                pred_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
-                figure(fig_exp);
-                plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
-
-                if bool_madecontact == false
-                    bool_madecontact = true;
-                end
-            else
-                % if an object did not make any contact 
-                pred_obj_pose{i} = cur_obj_pose{i};
-            end
-        end
+    for i=1:num_obj
+        obj_pose = [eGetR(obj_trajectory{i}(1,4:6)) obj_trajectory{i}(1,1:3)'; 0 0 0 1];
+        obj_modelPoints=obj_pose*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
+        obj_normalPoints = [obj_pose(1:3,1:3) [0 0 0]';0 0 0 1]*[obj_normpoints{i}'; ones(1,size(obj_normpoints{i},1))];
+        cur_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
+        cur_obj_normalpoints{i}=obj_normalPoints(1:3,:)';
     end
+    all_obj_modelpoints= [];
+    for i=1:num_obj
+        all_obj_modelpoints = [all_obj_modelpoints;cur_obj_modelpoints{i}];
+    end
+    
+    cur_obj1_pose = [eGetR(obj_trajectory{1}(1,4:6)) obj_trajectory{1}(1,1:3)'; 0 0 0 1];
+    cur_obj1_pose_af = cur_obj1_pose * gripper_pose^-1;
+    global_shape_features = compute_grid_feature(cur_gripper_points, all_obj_modelpoints, cur_obj1_pose_af, 0.25, 0.05);
+    
+    relative_pose1 = cur_obj1_pose*gripper_pose^-1;
+    relative_pose1_features = [relative_pose1(1:3,4)' RGete(relative_pose1(1:3,1:3))'];
+    cur_obj2_pose = [eGetR(obj_trajectory{2}(1,4:6)) obj_trajectory{2}(1,1:3)'; 0 0 0 1];
+    cur_obj2_pose_af = cur_obj2_pose * gripper_pose^-1;
+    relative_pose2 = cur_obj2_pose*gripper_pose^-1;
+    relative_pose2_features = [relative_pose2(1:3,4)' RGete(relative_pose2(1:3,1:3))'];
+    
+    action_pose_features = [action_pose(1:3,4)' RGete(action_pose(1:3,1:3))'];
+    
+    features = [global_shape_features relative_pose1_features relative_pose2_features action_pose_features];
+    
+    obj1_end_pose = [eGetR(obj_trajectory{1}(end,4:6)) obj_trajectory{1}(end,1:3)'; 0 0 0 1];
+    obj1_end_pose_af = gripper_pose*obj1_end_pose;
+    obj1_diff = obj1_end_pose_af * cur_obj1_pose^-1;
+    result1 = [obj1_diff(1:3,4)' RGete(obj1_diff(1:3,1:3))'];
+    
+    obj2_end_pose = [eGetR(obj_trajectory{2}(end,4:6)) obj_trajectory{2}(end,1:3)'; 0 0 0 1];
+    obj2_end_pose_af = gripper_pose*obj2_end_pose;
+    obj2_diff = obj2_end_pose_af * cur_obj2_pose^-1;
+    result2 = [obj2_diff(1:3,4)' RGete(obj2_diff(1:3,1:3))'];
+    
+    %load([dataFolder 'GP_models_feature_ard.mat']);
+    modelFolder = 'data/models/';
+    load([modelFolder 'GP_models_obj1.mat']);
+    gprMdl_obj1 = gprMdl;
+    load([modelFolder 'GP_models_obj2.mat']);
+    gprMdl_obj2 = gprMdl;
+    
+    for j=1:6
+        [pred_obj1(1,j) pred_obj1_sd(1,j)] = predict(gprMdl_obj1{j},features); 
+    end
+    for j=1:6
+        [pred_obj2(1,j) pred_obj2_sd(1,j)] = predict(gprMdl_obj2{j},features); 
+    end
+    
+   %pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];            
+    pred_obj1_pose_diff = [eGetR(pred_obj1(1,4:6)) pred_obj1(1,1:3)'; 0 0 0 1];            
+    pred_obj2_pose_diff = [eGetR(pred_obj2(1,4:6)) pred_obj2(1,1:3)'; 0 0 0 1];
+    pred_obj_pose_af{1} = pred_obj1_pose_diff * cur_obj1_pose_af;  
+    pred_obj_pose{1} = pred_obj_pose_af{1} * gripper_pose;  
+    pred_obj_pose_af{2} = pred_obj2_pose_diff * cur_obj2_pose_af;
+    pred_obj_pose{2} = pred_obj_pose_af{2} * gripper_pose;  
+    figure(fig_exp);
+    for i=1:num_obj
+        obj_modelPoints=pred_obj_pose{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
+        pred_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
+        plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
+    end
+    
+    prediction(1,:) = [pred_obj_pose{1}(1:3,4)' RGete(pred_obj_pose{1}(1:3,1:3))'];
+    prediction(2,:) = [pred_obj_pose{2}(1:3,4)' RGete(pred_obj_pose{2}(1:3,1:3))'];
+    ground_truth(1,:) = [obj1_end_pose(1:3,4)' RGete(obj1_end_pose(1:3,1:3))']
+    ground_truth(2,:) = [obj2_end_pose(1:3,4)' RGete(obj2_end_pose(1:3,1:3))']
+    
+    save([dataFolder 'mono_prediction_result_' num2str(scene_num) '.mat'],'prediction','ground_truth');
 
-    % save(['feat_n_result' num2str(scene_num) '.mat'],'features','results');
-    % disp('done!');
 end
 

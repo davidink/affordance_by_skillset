@@ -5,6 +5,7 @@ testdataFolder = 'data/test/';
 
 num_test_scene = size(dir([testdataFolder 'test*']),1);
 for i=1:num_test_scene
+    disp(['running scene ' num2str(i)]);
     test_trajectory = [testdataFolder 'test_trajectory' num2str(i)];
     fwd_gp_model = load('data/models/GP_models_feature_ard.mat');
     react_gp_model = load('data/models/GP_models_feature_ard_react.mat');

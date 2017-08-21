@@ -24,6 +24,7 @@ function modular_prediction_push(test_trajectory, fwd_gp_model, react_gp_model)
     
     for i=1:num_obj
         obj_trajectory{i} = trajectory(:,14+(i-1)*6:14+(i-1)*6+5);
+        obj_trajectory_gt{i} = trajectory(:,14+(i-1)*6:14+(i-1)*6+5);
         obj_param{i} = trajectory(:,14+6*num_obj+(i-1)*7:14+6*num_obj+(i-1)*7+6);
         plot3(obj_trajectory{i}(:,1),obj_trajectory{i}(:,2),obj_trajectory{i}(:,3),'.g');
     end
@@ -80,6 +81,9 @@ function modular_prediction_push(test_trajectory, fwd_gp_model, react_gp_model)
             end
         end
     end
+    
+    testdataFolder = 'data/test/';
+    save([testdataFolder 'modular_prediction_result_' test_trajectory(26) '.mat'],'obj_trajectory', 'obj_trajectory_gt');
 
 end
 

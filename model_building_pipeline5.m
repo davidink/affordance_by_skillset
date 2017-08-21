@@ -20,7 +20,7 @@ build_GP_models_mono(dataFolder);
 testdataFolder = 'data/test/';
 num_test_scene = size(dir([testdataFolder 'test*']),1);
 for i=1:num_test_scene
-    test_trajectory_prediction_mono(dataFolder, i);
+    test_trajectory_prediction_mono(testdataFolder, i);
 end
 
 %dataFolder = 'data/reactive/';
