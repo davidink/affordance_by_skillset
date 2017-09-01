@@ -4,17 +4,36 @@ function [features] = compute_surface_feature(pcd_ee, norm_ee, pcd_obj, norm_obj
     [pcd_ee_ref norm_ee_ref] = convert_pcd_frame(pcd_ee,norm_ee,cont_frame^-1);
     [pcd_obj_ref norm_obj_ref] = convert_pcd_frame(pcd_obj,norm_obj,cont_frame^-1);
     
-%     figure;
-%     hold on;
-%     plot3(pcd_ee_ref(:,1),pcd_ee_ref(:,2),pcd_ee_ref(:,3),'Color',[1 0 0],'Marker','.','Linestyle','none');
-%     plot3(pcd_obj_ref(:,1),pcd_obj_ref(:,2),pcd_obj_ref(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
-% %     quiver3(obj_points_CF(:,1),obj_points_CF(:,2),obj_points_CF(:,3),obj_norms_CF(:,1)/100,obj_norms_CF(:,2)/100,obj_norms_CF(:,3)/100);
-%     plotCoord([0 0 0]',eye(3),0.025);
-%     axis equal;
+    figure;
+    hold on;
+    plot3(pcd_ee_ref(:,1),pcd_ee_ref(:,2),pcd_ee_ref(:,3),'Color',[1 0 0],'Marker','.','Linestyle','none');
+    plot3(pcd_obj_ref(:,1),pcd_obj_ref(:,2),pcd_obj_ref(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
+%     quiver3(obj_points_CF(:,1),obj_points_CF(:,2),obj_points_CF(:,3),obj_norms_CF(:,1)/100,obj_norms_CF(:,2)/100,obj_norms_CF(:,3)/100);
+    plotCoord([0 0 0]',eye(3),0.025);
+    view(90,0);
+    axis equal;
     
     % Assume all 6 axes are independent
-    ee_surface = [mean(pcd_ee_ref) var(pcd_ee_ref) mean(norm_ee_ref) var(norm_ee_ref)];
-    obj_surface = [mean(pcd_obj_ref) var(pcd_obj_ref) mean(norm_obj_ref) var(norm_obj_ref)];
+    ee_cloud = [pcd_ee_ref norm_ee_ref];
+    obj_cloud = [pcd_obj_ref norm_obj_ref];
+    
+%     ee_surface = [mean(pcd_ee_ref) var(pcd_ee_ref) mean(norm_ee_ref) var(norm_ee_ref)];
+%     obj_surface = [mean(pcd_obj_ref) var(pcd_obj_ref) mean(norm_obj_ref) var(norm_obj_ref)];
+    
+    ee_cov_triu =[];
+    ee_cov = cov(ee_cloud);
+    for i=1:size(ee_cloud,2)
+        ee_cov_triu = [ee_cov_triu ee_cov(i,1:size(ee_cloud,2)-i+1)];
+    end    
+    ee_surface = [mean(ee_cloud) ee_cov_triu];
+    
+    obj_cov_triu =[];
+    obj_cov = cov(obj_cloud);
+    for i=1:size(obj_cloud,2)
+        obj_cov_triu = [obj_cov_triu obj_cov(i,1:size(obj_cloud,2)-i+1)];
+    end    
+    obj_surface = [mean(obj_cloud) obj_cov_triu];
+    
     
     features = [ee_surface obj_surface];
 

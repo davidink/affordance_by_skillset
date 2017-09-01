@@ -6,7 +6,7 @@ function build_GP_models_kok(dataFolder)
     i=0;
     while ~bool_end 
         i = i+1;
-        if(size(dir([dataFolder 'react_feat_n_result' num2str(i) '*']),1)==0)
+        if(size(dir([dataFolder 'feat_n_result' num2str(i) '*']),1)==0)
             bool_end = true;
             scene_cnt = i -1;
         end
@@ -17,7 +17,7 @@ function build_GP_models_kok(dataFolder)
 
 
     for i=1:scene_cnt
-        filename = [dataFolder 'react_feat_n_result' num2str(i) '.mat'];
+        filename = [dataFolder 'feat_n_result' num2str(i) '.mat'];
         load(filename);
         features_all = [features_all;features];
         results_all = [results_all;results];
@@ -37,7 +37,7 @@ function build_GP_models_kok(dataFolder)
     % GP with ARD exponential
     length_scale_init_val = 1;
     %sigma0 = std(rslt_train);
-    sigma0 = [0.1 0.1 0.1 0.01 0.01 0.01 0.1];
+    sigma0 = [0.1 0.1 0.1 0.01 0.01 0.01];
     sigmaF0 = sigma0;
     dim = size(features_all,2);
     sigmaM0 = length_scale_init_val*ones(dim,1);
@@ -50,9 +50,15 @@ function build_GP_models_kok(dataFolder)
             'KernelParameters',[sigmaM0;sigmaF0(1,i)],'Sigma',sigma0(1,i),'Standardize',1);
         %[pred(:,i) pred_sd(:,i)] = predict(gprMdl{i},feat_test);        
         pred_train(:,i) = resubPredict(gprMdl{i});
+        loss(i,1) = resubLoss(gprMdl{i});
     end
 
-    save([dataFolder 'GP_models_feature_ard_react.mat'],'gprMdl');
+    figure;
+    hold on;
+    plot3(pred_train(:,1),pred_train(:,2),pred_train(:,3),'ob');
+    plot3(results_all(:,1),results_all(:,2),results_all(:,3),'.r');
+    
+    save([dataFolder 'GP_models_feature_ard2.mat'],'gprMdl');
 end
 
 % mdl_WGP{i,j}.hyp = repmat(1.0,D+2,1);

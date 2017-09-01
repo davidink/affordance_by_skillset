@@ -36,9 +36,10 @@ end
 %build gp models
 build_GP_models_kok(dataFolder);
 
-num_test_scene = size(dir([dataFolder 'test*']),1);
+testdataFolder = 'data/test/';
+num_test_scene = size(dir([testdataFolder 'test*']),1);
 for i=1:num_test_scene
-    test_trajectory_prediction_with_react(dataFolder, i);
+    test_trajectory_prediction_with_react(testdataFolder, i);
 end
 
 

@@ -30,18 +30,20 @@ function [bool_cont cont_pcd_EE cont_norm_EE cont_pcd_obj cont_norm_obj] = compu
 %     plot3(obj_points_CF(:,1),obj_points_CF(:,2),obj_points_CF(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
 % %     quiver3(obj_points_CF(:,1),obj_points_CF(:,2),obj_points_CF(:,3),obj_norms_CF(:,1)/100,obj_norms_CF(:,2)/100,obj_norms_CF(:,3)/100);
 %     plotCoord([0 0 0]',eye(3),0.025);
+%     axis([-0.3 0.3 -0.3 0.3 -0.3 0.3])
 %     axis equal;
+%     view(90,0);
     
     ee_cent = mean(ee_points_CF);
     obj_cent = mean(obj_points_CF);
-    if ee_cent(2) > obj_cent(2) 
-        bool_cont= false;
-        cont_pcd_EE = [];
-        cont_norm_EE = [];
-        cont_pcd_obj = [];
-        cont_norm_obj = [];
-        return;        
-    end
+%     if ee_cent(2) > obj_cent(2) 
+%         bool_cont= false;
+%         cont_pcd_EE = [];
+%         cont_norm_EE = [];
+%         cont_pcd_obj = [];
+%         cont_norm_obj = [];
+%         return;        
+%     end
     
     %quiver3(ee_points_CF(:,1),ee_points_CF(:,2),ee_points_CF(:,3),ee_norms_CF(:,1)/100,ee_norms_CF(:,2)/100,ee_norms_CF(:,3)/100);
 

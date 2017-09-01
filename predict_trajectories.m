@@ -91,14 +91,17 @@ function [obj1_trajectory obj2_trajectory] = predict_trajectories(Desired_obj1_p
             for j=1:6
                 [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},cur_feat); 
             end
-
-            %global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
-            local_contact_shape_features = compute_surface_feature(cont_pcd_obj1, cont_norm_obj1, cont_pcd_obj2, cont_norm_obj2, cont_frame);
-            %reaction as features too
             pred_obj2_pose_diff = [eGetR(pred(1,4:6)) pred(1,1:3)'; 0 0 0 1];           
             cur_obj2_pose_af = cont_frame*cur_obj2_pose;
             pred_obj2_pose_af = pred_obj2_pose_diff * cur_obj2_pose_af;
             pred_obj2_pose = cont_frame^-1*pred_obj2_pose_af;
+%             pred_obj2_pose = pred_obj2_pose_diff * cur_obj2_pose;  
+
+            %global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
+            local_contact_shape_features = compute_surface_feature(cont_pcd_obj1, cont_norm_obj1, cont_pcd_obj2, cont_norm_obj2, cont_frame);
+            %reaction as features too
+
+            
             obj_pose_diff = pred_obj2_pose * cur_obj2_pose^-1;
             obj_pose_diff_af = obj_pose_diff * cont_frame^-1;
             reactive_pose_features = [obj_pose_diff_af(1:3,4)' RGete(obj_pose_diff_af(1:3,1:3))'];

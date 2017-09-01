@@ -14,19 +14,23 @@ function test_trajectory_prediction_kok(dataFolder,scene_num)
     Executed_EE_pose = trajectory(:,7:12);
     num_obj = trajectory(1,13);
 
-    for i=1:num_obj
-        obj_trajectory{i} = trajectory(:,14+(i-1)*6:14+(i-1)*6+5);
-        obj_param{i} = trajectory(:,14+6*num_obj+(i-1)*7:14+6*num_obj+(i-1)*7+6);
-    end
-
     fig_exp = figure;
     hold on;
-    plot3(Desired_EE_pose(:,1),Desired_EE_pose(:,2),Desired_EE_pose(:,3),'.b');
     xlabel('x');
     ylabel('y');
     zlabel('z');
     axis equal;
     axis([-0.25 0.25 -0.05 0.5 -0.2 0.2]);
+    
+    for i=1:num_obj
+        obj_trajectory{i} = trajectory(:,14+(i-1)*6:14+(i-1)*6+5);
+        obj_param{i} = trajectory(:,14+6*num_obj+(i-1)*7:14+6*num_obj+(i-1)*7+6);
+        plot3(obj_trajectory{i}(:,1),obj_trajectory{i}(:,2),obj_trajectory{i}(:,3),'og');
+    end
+
+
+    %plot3(Desired_EE_pose(:,1),Desired_EE_pose(:,2),Desired_EE_pose(:,3),'.b');  
+
 
     % show trajectory of end-effector 
 
@@ -50,7 +54,7 @@ function test_trajectory_prediction_kok(dataFolder,scene_num)
 %     step_size = 20;
     features = [];
     results = [];
-    load([dataFolder 'GP_models_feature_ard.mat']);
+    load([dataFolder 'GP_models_feature_ard2.mat']);
     bool_madecontact = false;
 
     for time_step = 10:step_size:size(trajectory,1)% visualize according to the pose
@@ -83,7 +87,8 @@ function test_trajectory_prediction_kok(dataFolder,scene_num)
                 cur_obj_normalpoints{i}=obj_normalPoints(1:3,:)';
 
                 figure(fig_exp);
-                plot3(cur_obj_modelpoints{i}(:,1),cur_obj_modelpoints{i}(:,2),cur_obj_modelpoints{i}(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
+                %plot3(cur_obj_modelpoints{i}(:,1),cur_obj_modelpoints{i}(:,2),cur_obj_modelpoints{i}(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
+                plot3(obj_pose_init{i}(1,4),obj_pose_init{i}(2,4),obj_pose_init{i}(3,4),'Color',[0 1 0],'Marker','x','Linestyle','none');
 
                 cur_obj_pose{i} = obj_pose_init{i};            
             end
@@ -138,12 +143,19 @@ function test_trajectory_prediction_kok(dataFolder,scene_num)
                 end
 
                 %pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];            
-                pred_obj_pose_diff = [eGetR(pred(1,4:6)) pred(1,1:3)'; 0 0 0 1];            
-                pred_obj_pose{i} = pred_obj_pose_diff * cur_obj_pose{i};  
+                
+                pred_obj_pose_diff = [eGetR(pred(1,4:6)) pred(1,1:3)'; 0 0 0 1];
+                cur_obj_pose_af = cont_frame * cur_obj_pose{i};
+                pred_obj_pose_af = pred_obj_pose_diff * cur_obj_pose_af;
+                pred_obj_pose_inf = cont_frame^-1*pred_obj_pose_af;
+                pred_obj_pose_glb = pred_obj_pose_diff * cur_obj_pose{i};  
+                pred_obj_pose{i} = pred_obj_pose_glb;  
+                
                 obj_modelPoints=pred_obj_pose{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
                 pred_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
                 figure(fig_exp);
-                plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
+                %plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
+                plot3(pred_obj_pose{i}(1,4),pred_obj_pose{i}(2,4),pred_obj_pose{i}(3,4),'Color',[0 1 1],'Marker','x','Linestyle','none');
 
                 if bool_madecontact == false
                     bool_madecontact = true;

@@ -112,11 +112,11 @@ function result = load_trajectories_kok(dataFolder, scene_num, opt_save_kernel_f
                 
                 % extract obj shape grid feature
                 % w.r.t obj_pose to action frame
-                cur_obj_pose_af = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
+                cur_obj_pose_gf = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
                 cur_obj_pose = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
-                cur_obj_pose_af(1:3,1:3) = cur_action_pose(1:3,1:3);
+                cur_obj_pose_gf(1:3,1:3) = cur_action_pose(1:3,1:3);
                 %global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
-                global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_af, 0.25, 0.05);
+                global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_gf, 0.25, 0.05);
                 relative_pose_obj_to_obj = cur_obj_pose*cont_frame^-1;
                 relative_pose_features = [relative_pose_obj_to_obj(1:3,4)' RGete(relative_pose_obj_to_obj(1:3,1:3))'];
                 action_pose_features = [cur_action_pose(1:3,4)' RGete(cur_action_pose(1:3,1:3))'];
