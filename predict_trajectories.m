@@ -15,13 +15,14 @@ function [obj1_trajectory obj2_trajectory] = predict_trajectories(Desired_obj1_p
     bool_madecontact = false;
     
     step_cnt = 1;
-    for time_step = 10:step_size:size(Desired_obj1_pose,1)-step_size% visualize according to the pose
+    for time_step = step_size:step_size:size(Desired_obj1_pose,1)-step_size% visualize according to the pose
         if bool_madecontact==false
             exp_obj1_pose = [eGetR(Desired_obj1_pose(time_step,4:6)) Desired_obj1_pose(time_step,1:3)'; 0 0 0 1];
         else
             % if already made a contact, current gripper_pose should be
             nxt_desired_obj1_pose = [eGetR(Desired_obj1_pose(time_step,4:6)) Desired_obj1_pose(time_step,1:3)'; 0 0 0 1];
             exp_obj1_pose = pred_obj1_pose_diff * nxt_desired_obj1_pose;
+            exp_obj1_pose(1:3,1:3) = nxt_desired_obj1_pose(1:3,1:3);
         end
         
         nxt_exp_obj1_pose = [eGetR(Desired_obj1_pose(time_step+step_size,4:6)) Desired_obj1_pose(time_step+step_size,1:3)'; 0 0 0 1];
@@ -79,7 +80,9 @@ function [obj1_trajectory obj2_trajectory] = predict_trajectories(Desired_obj1_p
             %compute features
             
             %global_shape_features = compute_grid_feature(exp_obj1_points, cur_obj2_modelpoints, cont_frame, 0.25, 0.05);
-            global_shape_features = compute_grid_feature(exp_obj1_points, cur_obj2_modelpoints, cur_obj2_pose, 0.25, 0.05);
+            cur_obj2_pose_gf = cur_obj2_pose;                
+            cur_obj2_pose_gf(1:3,1:3) = cur_exp_obj1_action_pose(1:3,1:3);
+            global_shape_features = compute_grid_feature(exp_obj1_points, cur_obj2_modelpoints, cur_obj2_pose_gf, 0.25, 0.05);
             local_contact_shape_features = compute_surface_feature(cont_pcd_obj1, cont_norm_obj1, cont_pcd_obj2, cont_norm_obj2, cont_local_frame);
             relative_pose_obj_to_obj = cur_obj2_pose*cont_frame^-1;
             relative_pose_features = [relative_pose_obj_to_obj(1:3,4)' RGete(relative_pose_obj_to_obj(1:3,1:3))'];
@@ -90,27 +93,27 @@ function [obj1_trajectory obj2_trajectory] = predict_trajectories(Desired_obj1_p
 
             for j=1:6
                 [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},cur_feat); 
+                %pred(1,j) = mvnrnd(pred(1,j),pred_sd(1,j)^2);
             end
             pred_obj2_pose_diff = [eGetR(pred(1,4:6)) pred(1,1:3)'; 0 0 0 1];           
-            cur_obj2_pose_af = cont_frame*cur_obj2_pose;
+            cur_obj2_pose_af = cur_obj2_pose * cont_frame^-1;
             pred_obj2_pose_af = pred_obj2_pose_diff * cur_obj2_pose_af;
-            pred_obj2_pose = cont_frame^-1*pred_obj2_pose_af;
+            pred_obj2_pose = pred_obj2_pose_af*cont_frame;
+            %cur_obj2_pose = pred_obj2_pose;
 %             pred_obj2_pose = pred_obj2_pose_diff * cur_obj2_pose;  
 
             %global_shape_features = compute_grid_feature(exp_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
-            local_contact_shape_features = compute_surface_feature(cont_pcd_obj1, cont_norm_obj1, cont_pcd_obj2, cont_norm_obj2, cont_frame);
+            %local_contact_shape_features = compute_surface_feature(cont_pcd_obj1, cont_norm_obj1, cont_pcd_obj2, cont_norm_obj2, cont_frame);
             %reaction as features too
-
             
-            obj_pose_diff = pred_obj2_pose * cur_obj2_pose^-1;
-            obj_pose_diff_af = obj_pose_diff * cont_frame^-1;
-            reactive_pose_features = [obj_pose_diff_af(1:3,4)' RGete(obj_pose_diff_af(1:3,1:3))'];
+            reactive_pose_features = [pred_obj2_pose_diff(1:3,4)' RGete(pred_obj2_pose_diff(1:3,1:3))'];
             %grid_features = [global_shape_features local_contact_shape_features];            
             %kernel_feat = compute_kernel_features([dataFolder 'feat_kernel_react.mat'],grid_features);
             cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features reactive_pose_features];
 
             for j=1:6
                 [pred_react(1,j) pred_sd_react(1,j)] = predict(react_gprMdl{j},cur_feat); 
+                %pred_react(1,j) = mvnrnd(pred_react(1,j),pred_sd_react(1,j)^2);
             end
 
             % pose difference is predicted according to the action frame                
@@ -129,9 +132,14 @@ function [obj1_trajectory obj2_trajectory] = predict_trajectories(Desired_obj1_p
             % if an object did not make any contact 
             pred_obj2_pose = obj2_pose_bc;
         end
+        
         obj1_trajectory(step_cnt,:) = [exp_obj1_pose(1:3,4)' RGete(exp_obj1_pose(1:3,1:3))'];
         obj2_trajectory(step_cnt,:) = [cur_obj2_pose(1:3,4)' RGete(cur_obj2_pose(1:3,1:3))'];
         step_cnt = step_cnt +1;
+        if time_step == size(Desired_obj1_pose,1)-step_size
+            obj1_trajectory(step_cnt,:) = [pred_obj1_pose(1:3,4)' RGete(pred_obj1_pose(1:3,1:3))'];
+            obj2_trajectory(step_cnt,:) = [pred_obj2_pose(1:3,4)' RGete(pred_obj2_pose(1:3,1:3))'];
+        end
     end
     obj1_trajectory = interpolate_traj(obj1_trajectory);
     obj2_trajectory = interpolate_traj(obj2_trajectory);

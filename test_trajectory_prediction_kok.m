@@ -54,10 +54,14 @@ function test_trajectory_prediction_kok(dataFolder,scene_num)
 %     step_size = 20;
     features = [];
     results = [];
-    load([dataFolder 'GP_models_feature_ard2.mat']);
+    load([dataFolder 'GP_models_feature_ard.mat']);
     bool_madecontact = false;
+    
+    prediction = [];
+    ground_truth = [];
+    step_cnt = 1;
 
-    for time_step = 10:step_size:size(trajectory,1)% visualize according to the pose
+    for time_step = 10:step_size:size(trajectory,1)-step_size% visualize according to the pose
 
         exp_gripper_pose = [eGetR(Desired_EE_pose(time_step,4:6)) Desired_EE_pose(time_step,1:3)'; 0 0 0 1];
         if time_step == size(trajectory,1)
@@ -139,24 +143,30 @@ function test_trajectory_prediction_kok(dataFolder,scene_num)
                 %kernel_feat = compute_kernel_features_kok([dataFolder 'feat_kernel.mat'],all_features);
                 cur_feat = [global_shape_features local_contact_shape_features relative_pose_features action_pose_features];
                 for j=1:6
-                    [pred(1,j) pred_sd(1,j)] = predict(gprMdl{j},cur_feat); 
+                    [pred(step_cnt,j) pred_sd(step_cnt,j)] = predict(gprMdl{j},cur_feat); 
                 end
 
                 %pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];            
                 
-                pred_obj_pose_diff = [eGetR(pred(1,4:6)) pred(1,1:3)'; 0 0 0 1];
-                cur_obj_pose_af = cont_frame * cur_obj_pose{i};
+                pred_obj_pose_diff = [eGetR(pred(step_cnt,4:6)) pred(step_cnt,1:3)'; 0 0 0 1];
+                cur_obj_pose_af = cur_obj_pose{i} * cont_frame^-1;                      
                 pred_obj_pose_af = pred_obj_pose_diff * cur_obj_pose_af;
-                pred_obj_pose_inf = cont_frame^-1*pred_obj_pose_af;
+                pred_obj_pose_inf = pred_obj_pose_af*cont_frame;
                 pred_obj_pose_glb = pred_obj_pose_diff * cur_obj_pose{i};  
-                pred_obj_pose{i} = pred_obj_pose_glb;  
+                pred_obj_pose{i} = pred_obj_pose_inf;  
                 
                 obj_modelPoints=pred_obj_pose{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
                 pred_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
                 figure(fig_exp);
-                %plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
+%                 plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
                 plot3(pred_obj_pose{i}(1,4),pred_obj_pose{i}(2,4),pred_obj_pose{i}(3,4),'Color',[0 1 1],'Marker','x','Linestyle','none');
 
+                prediction_pose = [pred_obj_pose{i}(1:3,4)' (RGete(pred_obj_pose{i}(1:3,1:3)))'];
+                prediction = [prediction;prediction_pose];
+                gt_pose = obj_trajectory{i}(time_step+step_size,:);
+                ground_truth = [ground_truth;gt_pose];
+                
+                step_cnt = step_cnt +1;
                 if bool_madecontact == false
                     bool_madecontact = true;
                 end
@@ -166,8 +176,8 @@ function test_trajectory_prediction_kok(dataFolder,scene_num)
             end
         end
     end
-
-    % save(['feat_n_result' num2str(scene_num) '.mat'],'features','results');
+    
+    save([dataFolder 'prediction_result' num2str(scene_num) '.mat'],'prediction','ground_truth');
     % disp('done!');
 end
 

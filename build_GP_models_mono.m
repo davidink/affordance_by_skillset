@@ -41,9 +41,9 @@ function build_GP_models_mono(dataFolder)
     %     results_all = results_all(1:10:end,:);
 
         % GP with ARD exponential
-        length_scale_init_val = 1;
+        length_scale_init_val = exp(1);
         %sigma0 = std(rslt_train);
-        sigma0 = [0.1 0.1 0.1 0.01 0.01 0.01 0.1];
+        sigma0 = [0.1 0.1 0.1 0.01 0.01 0.01];
         sigmaF0 = sigma0;
         dim = size(features_all,2);
         sigmaM0 = length_scale_init_val*ones(dim,1);
@@ -57,6 +57,11 @@ function build_GP_models_mono(dataFolder)
             %[pred(:,i) pred_sd(:,i)] = predict(gprMdl{i},feat_test);        
             pred_train(:,i) = resubPredict(gprMdl{i});
         end
+        
+        figure;
+        hold on;
+        plot3(pred_train(:,1),pred_train(:,2),pred_train(:,3),'ob');
+        plot3(results_all(:,1),results_all(:,2),results_all(:,3),'.r');
 
         save([dataFolder 'GP_models_obj' num2str(item) '.mat'],'gprMdl');
     end

@@ -89,7 +89,7 @@ function result = load_trajectories_for_reactive_model(dataFolder, scene_num, op
                     default_color = [0 0.5 0.5];
                 end
             end
-            plot3(cur_obj_modelpoints{i}(:,1),cur_obj_modelpoints{i}(:,2),cur_obj_modelpoints{i}(:,3),'Color',default_color +[color_grad color_grad color_grad],'Marker','.','Linestyle','none');
+%             plot3(cur_obj_modelpoints{i}(:,1),cur_obj_modelpoints{i}(:,2),cur_obj_modelpoints{i}(:,3),'Color',default_color +[color_grad color_grad color_grad],'Marker','.','Linestyle','none');
             %quiver3(cur_obj_modelpoints(:,1),cur_obj_modelpoints(:,2),cur_obj_modelpoints(:,3),cur_obj_normalpoints(:,1)/100,cur_obj_normalpoints(:,2)/100,cur_obj_normalpoints(:,3)/100,'Color',[0 0 1]);
         end
 
@@ -116,12 +116,12 @@ function result = load_trajectories_for_reactive_model(dataFolder, scene_num, op
                 
                 % extract obj shape grid feature
                 % w.r.t obj_pose to action frame
-                cur_obj_pose_af = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
+                cur_obj_pose_gf = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
                 cur_obj_pose = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
-                cur_obj_pose_af(1:3,1:3) = app_action_pose(1:3,1:3);
+                cur_obj_pose_gf(1:3,1:3) = app_action_pose(1:3,1:3);
 
                 %global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cont_frame, 0.25, 0.05);
-                global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_af, 0.25, 0.05);
+                global_shape_features = compute_grid_feature(cur_gripper_points, cur_obj_modelpoints{i},cur_obj_pose_gf, 0.25, 0.05);
                 
                 
                 %local_contact_shape_features = compute_grid_feature(cont_pcd_EE, cont_pcd_obj,cont_local_frame, 0.25, 0.05);
@@ -134,8 +134,9 @@ function result = load_trajectories_for_reactive_model(dataFolder, scene_num, op
                 
                 %reaction as features too
                 nxt_obj_pose = [eGetR(obj_trajectory{i}(time_step+step_size,4:6)) obj_trajectory{i}(time_step+step_size,1:3)'; 0 0 0 1];
-                obj_pose_diff = nxt_obj_pose * cur_obj_pose^-1;
-                obj_pose_diff_af = obj_pose_diff * cont_frame^-1;
+                nxt_obj_pose_af = nxt_obj_pose * cont_frame^-1;
+                obj_pose_af = cur_obj_pose * cont_frame^-1;
+                obj_pose_diff_af = nxt_obj_pose_af * obj_pose_af^-1;
                 reactive_pose_features = [obj_pose_diff_af(1:3,4)' RGete(obj_pose_diff_af(1:3,1:3))'];
                 grid_features = [global_shape_features local_contact_shape_features];
 

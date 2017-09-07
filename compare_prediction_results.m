@@ -29,10 +29,18 @@ mono_obj2_pred_std = std(obj2_pred-obj2_gt);
 % obj2_gt = [];
 for i=1:num_test_scene
     load([testdataFolder 'modular_prediction_result_' num2str(i) '.mat']);
-    obj1_pred_err(i,:) = mean(obj_trajectory{1}-obj_trajectory_gt{1}(1:size(obj_trajectory{1},1),:));
-    obj2_pred_err(i,:) = mean(obj_trajectory{2}-obj_trajectory_gt{2}(1:size(obj_trajectory{1},1),:));
-%     obj1_pred_err(i,:) = (obj_trajectory{1}(end,:)-obj_trajectory_gt{1}(size(obj_trajectory{1},1),:));
-%     obj2_pred_err(i,:) = (obj_trajectory{2}(end,:)-obj_trajectory_gt{2}(size(obj_trajectory{2},1),:));
+%     obj1_pred_err(i,:) = mean(obj_trajectory{1}-obj_trajectory_gt{1}(1:size(obj_trajectory{1},1),:));
+%     obj2_pred_err(i,:) = mean(obj_trajectory{2}-obj_trajectory_gt{2}(1:size(obj_trajectory{1},1),:));
+    obj1_pred_err(i,:) = (obj_trajectory{1}(end,:)-obj_trajectory_gt{1}(size(obj_trajectory{1},1),:));
+    obj2_pred_err(i,:) = (obj_trajectory{2}(end,:)-obj_trajectory_gt{2}(size(obj_trajectory{2},1),:));
+    for j=4:6
+        if obj1_pred_err(i,j) > pi
+            obj1_pred_err(i,j) = obj1_pred_err(i,j) - 2*pi;
+        else if obj1_pred_err(i,j) < -pi
+            obj1_pred_err(i,j) = obj1_pred_err(i,j) + 2*pi;
+            end
+        end
+    end
 end
 
 modu_obj1_pred_err = rms(obj1_pred_err);

@@ -4,13 +4,13 @@ function [features] = compute_grid_feature(pcd_ee, pcd_obj, cont_frame, roi_size
     pcd_ee_ref = convert_pcd_frame(pcd_ee,[1 1 1],cont_frame^-1);
     pcd_obj_ref = convert_pcd_frame(pcd_obj,[1 1 1],cont_frame^-1);
     
-    figure;
-    hold on;
-    plot3(pcd_ee_ref(:,1),pcd_ee_ref(:,2),pcd_ee_ref(:,3),'Color',[1 0 0],'Marker','.','Linestyle','none');
-    plot3(pcd_obj_ref(:,1),pcd_obj_ref(:,2),pcd_obj_ref(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
-%     quiver3(obj_points_CF(:,1),obj_points_CF(:,2),obj_points_CF(:,3),obj_norms_CF(:,1)/100,obj_norms_CF(:,2)/100,obj_norms_CF(:,3)/100);
-    plotCoord([0 0 0]',eye(3),0.025);
-    axis equal;
+%     figure;
+%     hold on;
+%     plot3(pcd_ee_ref(:,1),pcd_ee_ref(:,2),pcd_ee_ref(:,3),'Color',[1 0 0],'Marker','.','Linestyle','none');
+%     plot3(pcd_obj_ref(:,1),pcd_obj_ref(:,2),pcd_obj_ref(:,3),'Color',[0 1 0],'Marker','.','Linestyle','none');
+% %     quiver3(obj_points_CF(:,1),obj_points_CF(:,2),obj_points_CF(:,3),obj_norms_CF(:,1)/100,obj_norms_CF(:,2)/100,obj_norms_CF(:,3)/100);
+%     plotCoord([0 0 0]',eye(3),0.025);
+%     axis equal;
 
     len_roi = roi_size;
     grid_size = granual;
@@ -39,7 +39,7 @@ function [features] = compute_grid_feature(pcd_ee, pcd_obj, cont_frame, roi_size
                 end                
                 if size(idx_ee,1) ~= 0 % if some points are within the grid
                     %occu_2d(k,j) = 1; %                    
-                    occu_2d(k,j) = 0; %                    
+                    occu_2d(k,j) = 1; %                    
                 end
                 if size(idx_obj,1) ~= 0 % if some points are within the grid
 %                     occu_2d(k,j) = 2;%

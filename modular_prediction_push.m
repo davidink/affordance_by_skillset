@@ -47,6 +47,9 @@ function modular_prediction_push(test_trajectory, fwd_gp_model, react_gp_model)
             disp(['End effector first contacts object ' num2str(i) ' at time step ' num2str(cont_time_step(i))]);
         end
     end
+%     bool_cont(1) = 1;
+%     cont_time_step(1) = 50;
+%     bool_cont(2) = 0;
 
     %predict with first object in contact
     for i=1:num_obj
@@ -72,7 +75,7 @@ function modular_prediction_push(test_trajectory, fwd_gp_model, react_gp_model)
                     %compute expected trajectory of obj1(end-effector) and %obj2(obj1)
                     [obj1_traj obj2_traj] = predict_trajectories(obj_trajectory{i}, obj_modelpoints{i},obj_normpoints{i}, obj_modelpoints{j},obj_normpoints{j}, obj_trajectory{j}(1,:), fwd_gp_model, react_gp_model);
                     %plot3(ee_traj(:,1),ee_traj(:,2),ee_traj(:,3),'.b');
-                    plot3(obj1_traj(:,1),obj1_traj(:,2),obj1_traj(:,3),'xc');
+                    plot3(obj1_traj(:,1),obj1_traj(:,2),obj1_traj(:,3),'oc');
                     plot3(obj2_traj(:,1),obj2_traj(:,2),obj2_traj(:,3),'xc');
                     %exp_ee_traj = interpolate_traj(ee_traj);
                     obj_trajectory{i} = obj1_traj;
@@ -83,7 +86,7 @@ function modular_prediction_push(test_trajectory, fwd_gp_model, react_gp_model)
     end
     
     testdataFolder = 'data/test/';
-    save([testdataFolder 'modular_prediction_result_' test_trajectory(26) '.mat'],'obj_trajectory', 'obj_trajectory_gt');
+    save([testdataFolder 'modular_prediction_result_' test_trajectory(end) '.mat'],'obj_trajectory', 'obj_trajectory_gt');
 
 end
 

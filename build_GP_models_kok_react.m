@@ -35,7 +35,7 @@ function build_GP_models_kok_react(dataFolder)
 %     results_all = results_all(1:10:end,:);
     
     % GP with ARD exponential
-    length_scale_init_val = 1;
+    length_scale_init_val = exp(1);
     %sigma0 = std(rslt_train);
     sigma0 = [0.1 0.1 0.1 0.01 0.01 0.01 0.1];
     sigmaF0 = sigma0;
@@ -58,7 +58,7 @@ function build_GP_models_kok_react(dataFolder)
     plot3(pred_train(:,1),pred_train(:,2),pred_train(:,3),'ob');
     plot3(results_all(:,1),results_all(:,2),results_all(:,3),'.r');
 
-    save([dataFolder 'GP_models_feature_ard_react2.mat'],'gprMdl');
+    save([dataFolder 'GP_models_feature_ard_react.mat'],'gprMdl');
 end
 
 % mdl_WGP{i,j}.hyp = repmat(1.0,D+2,1);

@@ -134,10 +134,10 @@ function result = load_trajectories_kok(dataFolder, scene_num, opt_save_kernel_f
                 if opt_save_feat_n_result
                     %kernel_feat = compute_kernel_features_kok([dataFolder 'feat_kernel.mat'],all_features);
                     obj_pose = [eGetR(obj_trajectory{i}(time_step,4:6)) obj_trajectory{i}(time_step,1:3)'; 0 0 0 1];
-                    obj_pose_af = cont_frame*obj_pose;
+                    obj_pose_af = obj_pose*cont_frame^-1;
 
                     nxt_obj_pose = [eGetR(obj_trajectory{i}(time_step+step_size,4:6)) obj_trajectory{i}(time_step+step_size,1:3)'; 0 0 0 1];
-                    nxt_obj_pose_af = cont_frame*nxt_obj_pose;
+                    nxt_obj_pose_af = nxt_obj_pose*cont_frame^-1;
                     
                     obj_diff = nxt_obj_pose_af * obj_pose_af^-1;
                     %obj_diff_ang = vrrotmat2vec(obj_diff(1:3,1:3));

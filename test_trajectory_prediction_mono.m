@@ -113,26 +113,34 @@ function test_trajectory_prediction_mono(dataFolder,scene_num)
         [pred_obj2(1,j) pred_obj2_sd(1,j)] = predict(gprMdl_obj2{j},features); 
     end
     
-   %pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];            
-    pred_obj1_pose_diff = [eGetR(pred_obj1(1,4:6)) pred_obj1(1,1:3)'; 0 0 0 1];            
-    pred_obj2_pose_diff = [eGetR(pred_obj2(1,4:6)) pred_obj2(1,1:3)'; 0 0 0 1];
-    pred_obj_pose_af{1} = pred_obj1_pose_diff * cur_obj1_pose_af;  
-    pred_obj_pose{1} = pred_obj_pose_af{1} * gripper_pose;  
-    pred_obj_pose_af{2} = pred_obj2_pose_diff * cur_obj2_pose_af;
-    pred_obj_pose{2} = pred_obj_pose_af{2} * gripper_pose;  
-    figure(fig_exp);
-    for i=1:num_obj
-        obj_modelPoints=pred_obj_pose{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
-        pred_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
-        plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
+    for k=1:5
+        for j=1:6
+            prediction_obj1(1,j) = mvnrnd(pred_obj1(j),pred_obj1_sd(j)^2);
+            prediction_obj2(1,j) = mvnrnd(pred_obj2(j),pred_obj2_sd(j)^2);
+        end
+        pred_obj1_pose_diff = [eGetR(prediction_obj1(1,4:6)) prediction_obj1(1,1:3)'; 0 0 0 1];            
+        pred_obj2_pose_diff = [eGetR(prediction_obj2(1,4:6)) prediction_obj2(1,1:3)'; 0 0 0 1];
+        pred_obj_pose_af{1} = pred_obj1_pose_diff * cur_obj1_pose_af;  
+        pred_obj_pose{1} = pred_obj_pose_af{1} * gripper_pose;  
+        pred_obj_pose_af{2} = pred_obj2_pose_diff * cur_obj2_pose_af;
+        pred_obj_pose{2} = pred_obj_pose_af{2} * gripper_pose;  
+%         figure(fig_exp);
+%         for i=1:num_obj
+%             obj_modelPoints=pred_obj_pose{i}*[obj_modelpoints{i}'; ones(1,size(obj_modelpoints{i},1))];
+%             pred_obj_modelpoints{i}=obj_modelPoints(1:3,:)';
+%             plot3(pred_obj_modelpoints{i}(:,1),pred_obj_modelpoints{i}(:,2),pred_obj_modelpoints{i}(:,3),'Color',[0 1 1],'Marker','.','Linestyle','none');
+%         end
+
+        prediction(1,:) = [pred_obj_pose{1}(1:3,4)' RGete(pred_obj_pose{1}(1:3,1:3))'];
+        prediction(2,:) = [pred_obj_pose{2}(1:3,4)' RGete(pred_obj_pose{2}(1:3,1:3))'];
+        ground_truth(1,:) = [obj1_end_pose(1:3,4)' RGete(obj1_end_pose(1:3,1:3))']
+        ground_truth(2,:) = [obj2_end_pose(1:3,4)' RGete(obj2_end_pose(1:3,1:3))']
+
+        save([dataFolder 'mono_prediction_result_' num2str(scene_num) '_' num2str(k) '.mat'],'prediction','ground_truth');
     end
     
-    prediction(1,:) = [pred_obj_pose{1}(1:3,4)' RGete(pred_obj_pose{1}(1:3,1:3))'];
-    prediction(2,:) = [pred_obj_pose{2}(1:3,4)' RGete(pred_obj_pose{2}(1:3,1:3))'];
-    ground_truth(1,:) = [obj1_end_pose(1:3,4)' RGete(obj1_end_pose(1:3,1:3))']
-    ground_truth(2,:) = [obj2_end_pose(1:3,4)' RGete(obj2_end_pose(1:3,1:3))']
-    
-    save([dataFolder 'mono_prediction_result_' num2str(scene_num) '.mat'],'prediction','ground_truth');
+   %pred_obj_pose_diff = [vrrotvec2mat(pred(1,4:7)) pred(1,1:3)'; 0 0 0 1];            
+
 
 end
 
